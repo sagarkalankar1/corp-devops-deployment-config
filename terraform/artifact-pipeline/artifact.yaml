@@ -1,0 +1,20 @@
+trigger: none
+
+pool: Ubuntu-VMSS-POC
+
+stages:
+  - stage: Artifact
+    jobs:
+      - job: 
+        steps:
+          - script: |
+              cat terraform/script/script.sh >> $(Build.ArtifactStagingDirectory)/script.sh
+            displayName: 'Create script file'
+
+          # Publishing Pipeline Artifacts
+          - task: PublishPipelineArtifact@1
+            displayName: 'Publish Script Artifact'
+            inputs:
+              targetPath: '$(Build.ArtifactStagingDirectory)/'
+              artifact: 'ScriptArtifact'
+              publishLocation: 'pipeline'

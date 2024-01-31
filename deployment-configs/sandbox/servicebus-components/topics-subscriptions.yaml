@@ -1,0 +1,67 @@
+# These variables needs to be replaced:
+# - projectCode: 3 Letter Project Code Name.
+# - resourceGroup: resource group where the servicebus-component is existing.
+# - subscriptionId: Subscription Id.
+
+trigger:
+- none
+
+variables:
+- group: IAC_<projectCode>_GLOBAL_VAR_GRP
+- group: IAC_<projectCode>_QA_VAR_GRP
+
+- name: resourceGroup
+  value: <resourceGroup>
+  readonly: true
+
+- name: subscriptionId
+  value: <subscriptionId>
+  readonly: true
+
+pool: 
+  vmimage: ubuntu-latest
+
+parameters:
+## TODO: Refer all branches from "release" branch only.
+  - name: templateBranch
+    displayName: Template Repo Branch Name
+    type: string
+    default: release
+  
+  - name: iacModulesBranch
+    displayName: IaC Modules Branch Name
+    type: string
+    default: $(G_IAC_MODULE_REPO_BRANCH)
+
+  - name: miscConfigBranch
+    displayName: Misc Config Branch Name
+    type: string
+    default: release
+
+resources:
+  repositories:
+    - repository: CI_CD_Templates
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{ parameters.templateBranch }}
+      type: github
+      name: devsecops-len/ci-cd-templates
+
+    - repository: iacModules
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{ parameters.iacModulesBranch }}
+      type: github
+      name: devsecops-len/iac-modules
+
+    - repository: miscConfig
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{ parameters.miscConfigBranch }}
+      type: github
+      name: devsecops-len/<projectCode>-misc-config
+
+
+stages:
+  - template: cd-templates/serviceBusComponents/bicep-deployment-template.yaml@CI_CD_Templates
+    parameters:
+      resourceGroup: $(resourceGroup)
+      subscriptionId: $(subscriptionId)
+      csmFile: $(G_PROJECT_CODE)-misc-config/5year/serviceBus-components/$(ENV_NAME)/topics-subscriptions.bicep

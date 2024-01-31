@@ -1,0 +1,1 @@
+sudo bash -c 'mkdir -p /opt/hostedtoolcache && chmod -R 777 /opt/hostedtoolcache'

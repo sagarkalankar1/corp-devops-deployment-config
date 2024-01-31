@@ -1,0 +1,95 @@
+# These variables needs to be replaced
+# - resourceGroupName: resource group where the APIM is existing.
+# - serviceConnection: Service Connection Name with permissions to deploy to the APIM 
+# - apimName: Name of the APIM in which APIs and its components are to be deployed.
+# - versionSetId: The ID to be given to a perticular version Set.
+# - apiPath: API Path, for path based APIs.
+# - specificationPath: Path to the specification file in the misc config repository.
+# - operationsPolicyMetadata: Path to the Operations Policy Metadata file in the misc config repository.
+# - apiPolicyFilePath: Path to the API Policy File in the misc config repository.
+# - projectCode: 3 letter code for the Project.
+
+trigger:
+- none
+
+variables:
+  - name: resourceGroup
+    value: <resourceGroupName>
+    readonly: true
+
+  - name: serviceConnection
+    value: <serviceConnection>
+    readonly: true
+
+  - name: apimName
+    value: <apimName>
+    readonly: true
+
+  - name: versionSetId
+    value: <versionSetId>
+    readonly: true
+
+## If path set by swagger spec file this value will be overridden.
+  - name: apiPath
+    value: <apiPath>
+    readonly: true
+  
+  - name: specificationFormat
+    value: OpenApi
+    readonly: true
+  
+  - name: specificationPath
+    value: <specificationPath>
+    readonly: true
+  
+  - name: operationsPolicyMetadata
+    value: <operationsPolicyMetadata>
+  
+  - name: apiPolicyFilePath
+    value: <apiPolicyFilePath>
+
+  - name: version
+    value: v2
+
+pool: 
+  vmimage: ubuntu-latest
+
+
+parameters:
+  - name: templateBranch
+    displayName: CI_CD Branch Name
+    type: string
+    default: release
+  
+  - name: ApiConfigRepoBranch
+    displayName: API Config Repo Name
+    type: string
+    default: release
+
+resources:
+  repositories:
+    - repository: CI_CD_Templates
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{parameters.templateBranch}}
+      type: github
+      name: devsecops-len/ci-cd-templates
+
+    - repository: API_SPEC_DEFINITION_REPO
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{parameters.ApiConfigRepoBranch}}
+      type: github
+      name: devsecops-len/<projectCode>-misc-config
+
+stages:
+  - template: cd-templates/apim/deploy-api-components.yaml@CI_CD_Templates
+    parameters:
+      resourceGroup: $(resourceGroup)
+      serviceConnection: $(serviceConnection)
+      apimName: $(apimName)
+      versionSetId: $(versionSetId)
+      apiPath: $(apiPath)
+      specificationFormat: $(specificationFormat)
+      specificationPath: $(specificationPath)
+      operationsPolicyMetadata: $(operationsPolicyMetadata)
+      version: $(version)
+      apiPolicyFilePath: $(apiPolicyFilePath)

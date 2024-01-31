@@ -1,0 +1,64 @@
+# Node.js
+# Build a general Node.js project with npm.
+# Add steps that analyze code, save build artifacts, deploy, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
+
+#Parameters:
+# baseImage (String) (Required) FQDN for the Docker file.
+# If the base image is taken from Docker then eg. baseImage= node:18.16-alpine3.17
+# If the base image is taken from ACR then eg. baseImage= lnosdevops.azurecr.io/devops/golden-container-images/node:node_18_16
+# finalImageTag (String) (Required) Tag name to the image.
+
+trigger: none
+
+pool:
+  vmImage: ubuntu-latest
+
+parameters:
+  - name: baseImage
+    type: string
+    default: ''
+
+  - name: finalImageTag
+    type: string
+    default: ''
+
+variables:
+  - group: GOLDEN_CONTAINER_IMAGE_VAR_GRP
+
+  - name: containerImageRegistryServiceConnection
+    value: $(CONTAINER_IMAGE_REGISTRY_SERVICE_CONNECTION)
+
+  - name: imageRepository
+    value: $(DEV_OPS_GOLDEN_IMAGE_CONTAINER_REPO_BASE_PATH)node/v18_16
+
+  - name: dockerfilePath
+    value: devops/golden-container-images/node/generic/Dockerfile
+
+  - name: dockerCliBuildArgs
+    value: --build-arg baseImage=${{ parameters.baseImage }}
+
+  - name: dockerCliPushArgs
+    value: ''
+
+  - name: buildContext
+    value: ''
+
+resources:
+  repositories:
+    - repository: ci-templates
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/release
+      type: github
+      name: devsecops-len/ci-cd-templates
+
+steps:
+  - template: ci-templates/buildAndPushToContainerRegistry.yaml@ci-templates
+    parameters:
+      containerImageRegistryServiceConnection: $(containerImageRegistryServiceConnection)
+      imageRepository: $(imageRepository)
+      dockerfilePath: $(dockerfilePath)
+      additionalTag: ${{ parameters.finalImageTag }}
+      dockerCliBuildArgs: $(dockerCliBuildArgs) # dockerCliBuildArgs parameter is used to pass baseImage in Docker build.
+      dockerCliPushArgs: $(dockerCliPushArgs) # dockerCliPushArgs parameter is used to pass arguments to Docker Push.
+      buildContext: $(buildContext) # To locate the folder that contains everything to build docker image.

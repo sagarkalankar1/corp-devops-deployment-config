@@ -1,0 +1,64 @@
+trigger:
+- none
+
+variables:
+# - group: IAC_<projectCode>_GLOBAL_VAR_GRP
+- group: AGENT_POOL_VAR_GRP
+
+- name: resourceGroup
+  value: lnadoresp01
+  readonly: true
+
+- name: subscriptionId
+  value: 1971f0d2-b061-4971-bbee-56171d168156
+  readonly: true
+
+pool: 
+  vmimage: ubuntu-latest
+
+parameters:
+## TODO: Refer all branches from "release" branch only.
+  - name: templateBranch
+    displayName: Template Repo Branch Name
+    type: string
+    default: release
+  
+  - name: iacModulesBranch
+    displayName: IaC Modules Branch Name
+    type: string
+    default: $(G_IAC_MODULE_REPO_BRANCH)
+
+  - name: moduleName
+    displayName: Name of the bice module to test
+    type: string
+    values:
+    - storageAccount
+  
+  # - name: env
+  #   displayName: Enviroment to deploy to
+  #   type: string
+
+
+resources:
+  repositories:
+    - repository: CI_CD_Templates
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{ parameters.templateBranch }}
+      type: github
+      name: devsecops-len/ci-cd-templates
+
+    - repository: iacModules
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{ parameters.iacModulesBranch }}
+      type: github
+      name: devsecops-len/iac-modules
+
+
+stages:
+  - template: cd-templates/bicep-deployment-template/v1.1/bicep-deployment-template.yaml@CI_CD_Templates
+    parameters:
+      resourceGroup: $(resourceGroup)
+      subscriptionId: $(subscriptionId)
+      csmFile: corp-devops-deployment-config/infra-as-code/bicep/main1.bicep
+      parameterFile: corp-devops-deployment-config/infra-as-code/bicep/sandbox01/baseline-infra/parameters-sandbox1.bicepparam
+      # env: ${{parameters.env}}

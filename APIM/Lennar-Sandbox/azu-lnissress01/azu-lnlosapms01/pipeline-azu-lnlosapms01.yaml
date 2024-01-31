@@ -1,0 +1,66 @@
+trigger:
+  - none
+
+pool: 
+  vmimage: ubuntu-latest
+  
+variables:
+
+  - group: CD_GLOBAL_VARIABLE_GROUP
+  - group: CD_SB_VARIABLE_GROUP
+
+  - name: resourceGroup
+    value: azu-lnissress01
+    readonly: true
+
+  - name: subscriptionId
+    value: 1971f0d2-b061-4971-bbee-56171d168156
+    readonly: true
+
+parameters:
+## TODO: Refer all branches from "release" branch only.
+  - name: templateBranch
+    displayName: Template Repo Branch Name
+    type: string
+    default: release
+  
+  - name: iacModulesBranch
+    displayName: IaC Modules Branch Name
+    type: string
+    default: $(G_IAC_MODULE_REPO_BRANCH)
+
+  # - name: environment
+  #   displayName: 
+  #   type: string
+  #   default: sandbox
+
+
+resources:
+  repositories:
+    - repository: CI_CD_Templates
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{parameters.templateBranch}}
+      type: github
+      name: devsecops-len/ci-cd-templates
+
+    - repository: iacModules
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{ parameters.iacModulesBranch }}
+      type: github
+      name: devsecops-len/iac-modules
+
+
+stages: 
+  - template: cd-templates/apim/deploy-core-apim-components.yaml@CI_CD_Templates
+    parameters: 
+      resourceGroup: $(resourceGroup)
+      subscriptionId: $(subscriptionId)
+      location: East US
+      csmFileProduct: corp-devops-deployment-config/APIM/Lennar-Sandbox/azu-lnissress01/azu-lnlosapms01/products/main-products.bicep
+      csmFileBackend: corp-devops-deployment-config/APIM/Lennar-Sandbox/azu-lnissress01/azu-lnlosapms01/backends/main-backends.bicep
+      csmFileSubscription: corp-devops-deployment-config/APIM/Lennar-Sandbox/azu-lnissress01/azu-lnlosapms01/subscriptions/main-subscriptions.bicep
+      csmFileNameValue: corp-devops-deployment-config/APIM/Lennar-Sandbox/azu-lnissress01/azu-lnlosapms01/name-value/main-name-value.bicep
+      csmFilePolicyFragments: corp-devops-deployment-config/APIM/Lennar-Sandbox/azu-lnissress01/azu-lnlosapms01/policy-fragments/main-policy-fragments.bicep
+      serviceConnection: Lennar-Sandbox
+      apimName: azu-lnlosapms01
+      policyFilePath: APIM/Lennar-Sandbox/azu-lnissress01/azu-lnlosapms01/policy/apim-policies.xml

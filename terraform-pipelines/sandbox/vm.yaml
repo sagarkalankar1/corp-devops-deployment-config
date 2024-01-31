@@ -1,0 +1,89 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger: none
+
+parameters:
+  - name: moduleBranch
+    displayName: Name of the branch where module is saved
+    default: release
+    type: string
+
+  - name: deploymentConfigBranch
+    displayName: Name of the branch where module call/Stack is saved
+    default: release
+    type: string
+    
+  - name: templateBranch
+    displayName: Name of the branch where template is saved
+    default: release
+    type: string
+
+  - name: workingDirectory
+    displayName: Path to the working directory
+    default: 'corp-devops-deployment-config/terraform/stack/VM'
+    type: string
+  
+  - name: backendType
+    displayName: Type of backend
+    default: 'azurerm'
+    type: string
+  
+  - name: backendServiceArm
+    displayName: Name of the service connection used
+    default: 'RBAC-Sandbox'
+    type: string
+  
+  - name: environmentServiceName
+    displayName: Name of the service connection used
+    default: 'RBAC-Sandbox'
+    type: string
+  
+  - name: commandOptions
+    displayName: Name of the commands to add if required
+    default: '-var-file=$(vmdir) --var virtual_machine_admin_password=$(adminPassword)'
+    type: string
+
+variables:
+  - group: AGENT_POOL_VAR_GRP
+
+pool: Ubuntu-VMSS-POC
+
+resources:
+  repositories:
+    - repository: iac-modules
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{parameters.moduleBranch}}
+      type: github
+      name: devsecops-len/iac-modules
+    - repository: corp-devops-deployment-config
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{parameters.deploymentConfigBranch}}
+      type: github
+      name: devsecops-len/corp-devops-deployment-config
+    - repository: ci-cd-templates
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{parameters.templateBranch}}
+      type: github
+      name: devsecops-len/ci-cd-templates
+
+stages:
+- stage: Setup
+  jobs:
+    - job: Deploy_VM_using_TF
+      steps:
+        - checkout: self
+        - checkout: iac-modules
+        - checkout: ci-cd-templates
+        - checkout: corp-devops-deployment-config
+        - template: cd-templates/terraform/deployTerraformStack.yaml@ci-cd-templates
+          parameters:
+            workingDirectory: ${{parameters.workingDirectory}}
+            backendType: ${{parameters.backendType}}
+            backendServiceArm: ${{parameters.backendServiceArm}}
+            backendAzureRmSubscriptionId: '$(subscriptionId)'
+            commandOptions: ${{parameters.commandOptions}}
+            environmentServiceName: ${{parameters.environmentServiceName}}
+            providerAzureRmSubscriptionId: $(subscriptionId)

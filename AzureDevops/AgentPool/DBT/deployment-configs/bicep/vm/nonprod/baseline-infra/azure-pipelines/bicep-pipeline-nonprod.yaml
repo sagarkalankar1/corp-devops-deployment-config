@@ -1,0 +1,65 @@
+# These variables needs to be replaced:
+# - projectCode: 3 letter Project Code.
+
+trigger:
+- none
+
+variables:
+- group: IAC_<projectCode>_GLOBAL_VAR_GRP
+- group: IAC_<projectCode>_NONPROD_VAR_GRP
+
+- name: resourceGroup
+  value: azu-ln<projectCode>resd01
+  readonly: true
+
+- name: subscriptionId
+  value: bab871b9-ac22-460b-919a-d51ea040aef3
+  readonly: true
+
+pool: 
+  vmimage: ubuntu-latest
+
+parameters:
+## TODO: Refer all branches from "release" branch only.
+  - name: templateBranch
+    displayName: Template Repo Branch Name
+    type: string
+    default: release
+  
+  - name: iacModulesBranch
+    displayName: IaC Modules Branch Name
+    type: string
+    default: $(G_IAC_MODULE_REPO_BRANCH)
+  
+  - name: env
+    displayName: Enviroment to deploy to
+    type: string
+    values:
+      - dev01
+      - qa01
+      - uat01
+  
+
+resources:
+  repositories:
+    - repository: CI_CD_Templates
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{ parameters.templateBranch }}
+      type: github
+      name: devsecops-len/ci-cd-templates
+
+    - repository: iacModules
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{ parameters.iacModulesBranch }}
+      type: github
+      name: devsecops-len/iac-modules
+
+
+stages:
+  - template: cd-templates/bicep-deployment-template.yaml@CI_CD_Templates
+    parameters:
+      resourceGroup: $(resourceGroup)
+      subscriptionId: $(subscriptionId)
+      csmFile: $(G_PROJECT_CODE)-deployment-config/infra-as-code/bicep/main.bicep
+      parameterFile: $(G_PROJECT_CODE)-deployment-config/infra-as-code/bicep/${{parameters.env}}/baseline-infra/parameters-${{parameters.env}}.bicepparam
+      env: ${{parameters.env}}

@@ -1,0 +1,71 @@
+# These variables need to be replaced:
+# - projectCode: 3 letter code for the Project.
+# - loadTestResourceName: Load Test Resource Name.
+# - loadTestResourceGroupName: Load Test Resource Group Name.
+# - serviceConnectionName: Service Connection Name with permissions to deploy to the APIM 
+
+# trigger:
+# - none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - name: projectCode
+    value: <projectCode>
+  - name: templateCICDBranch
+    value: release
+  - name: loadTestResource
+    value: <loadTestResourceName>
+  - name: loadTestResourceGroup
+    value: <loadTestResourceGroupName>
+  - name: azureServiceConnection
+    value: <serviceConnectionName>
+  
+
+parameters:
+- name: environment
+  displayName: Environment for the Load Test
+  type: string
+
+- name: testName
+  displayName: Name given to the Load Test
+  type: string
+
+- name: LoadTestScripRepoBranchName
+  displayName: Load Test Script Repo Branch Name
+  type: string
+  default: release
+
+- name: loadTestConfigFile
+  displayName: File path of the Test Config file (YAML) in Misc Config repo
+  type: string
+
+
+resources:
+  repositories:
+    - repository: CI_CD_Templates
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/$(templateCICDBranch)
+      type: github
+      name: devsecops-len/ci-cd-templates
+
+
+    - repository: Load_Test_Script_Repo
+      endpoint: LennarGitHubServiceConnection
+      ref: refs/heads/${{parameters.LoadTestScripRepoBranchName}}
+      type: github
+      name: devsecops-len/demo-app-misc-config
+
+
+stages:
+  - template: cd-templates/loadTestPlanDeployment.yaml@CI_CD_Templates
+    parameters:
+      azureServiceConnection: $(azureServiceConnection)
+      loadTestResource: $(loadTestResource)
+      loadTestResourceGroup: $(loadTestResourceGroup)
+      projectCode: $(projectCode)
+      environment: ${{parameters.environment}}
+      testName: ${{parameters.testName}}
+      loadTestConfigFile: '$(System.DefaultWorkingDirectory)/$(projectCode)-misc-config/${{parameters.loadTestConfigFile}}'
+    
