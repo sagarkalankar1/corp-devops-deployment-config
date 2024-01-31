@@ -3,7 +3,7 @@ trigger:
 
 variables:
 # - group: IAC_<projectCode>_GLOBAL_VAR_GRP
-- group: AGENT_POOL_VAR_GRP
+#- group: AGENT_POOL_VAR_GRP
 
 - name: resourceGroup
   value: AZU-LNADORESP01   #azu-lnadoresd01                #azu-lndevopsd01 (commented values are for sandbox)
